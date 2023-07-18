@@ -50,7 +50,7 @@ void removeFromCurrentUserAutoStart(const std::string& appName) {
             std::cout << "Auto-start entry removed successfully for the current user." << std::endl;
         }
         else {
-            std::cout << "Failed to remove auto-start entry for the current user." << std::endl;
+            std::cout << "Failed to remove auto-start entry for the current user (or it was not installed on the first palce)." << std::endl;
         }
 
         RegCloseKey(hKey);
@@ -306,7 +306,7 @@ int main() {
     serverAddress.sin_port = htons(DEFAULT_PORT);
 
     // IP string to binary
-    if (inet_pton(AF_INET, "127.0.0.5", &(serverAddress.sin_addr)) != 1) {
+    if (inet_pton(AF_INET, "127.0.0.1", &(serverAddress.sin_addr)) != 1) {
         std::cout << "Invalid address. Failed to convert IP address." << std::endl;
         closesocket(clientSocket);
         WSACleanup();
