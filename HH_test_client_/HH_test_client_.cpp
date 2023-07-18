@@ -306,6 +306,9 @@ int main() {
     serverAddress.sin_port = htons(DEFAULT_PORT);
 
     // IP string to binary
+
+    //If localhost is being used by other programm, change this address
+
     if (inet_pton(AF_INET, "127.0.0.1", &(serverAddress.sin_addr)) != 1) {
         std::cout << "Invalid address. Failed to convert IP address." << std::endl;
         closesocket(clientSocket);
