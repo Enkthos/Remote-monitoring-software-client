@@ -4,6 +4,7 @@
 #include <Windows.h>
 #include <fstream>
 #include <thread>
+#include <string>
 #include <vector> // Include the vector header
 
 #pragma comment(lib, "ws2_32.lib")
@@ -12,6 +13,55 @@
 
 #define DEFAULT_PORT 27015
 #define DEFAULT_BUFLEN 4096
+
+//AutoStart
+
+
+bool askUserForAutoStart() {
+    std::cout << "Do you want to run this app at Windows startup? (y/n): ";
+    std::string response;
+    std::getline(std::cin, response);
+
+    return (response == "y" || response == "Y");
+}
+
+void addToCurrentUserAutoStart(const std::string& appName, const std::string& appPath) {
+    HKEY hKey;
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_SET_VALUE, &hKey) == ERROR_SUCCESS) {
+        if (RegSetValueExA(hKey, appName.c_str(), 0, REG_SZ, (BYTE*)appPath.c_str(), static_cast<DWORD>(appPath.length())) == ERROR_SUCCESS) {
+            std::cout << "Auto-start added successfully for the current user." << std::endl;
+        }
+        else {
+            std::cout << "Failed to add auto-start for the current user." << std::endl;
+        }
+
+        RegCloseKey(hKey);
+    }
+    else {
+        std::cout << "Failed to open the registry key." << std::endl;
+    }
+}
+
+
+void removeFromCurrentUserAutoStart(const std::string& appName) {
+    HKEY hKey;
+    if (RegOpenKeyExA(HKEY_CURRENT_USER, "Software\\Microsoft\\Windows\\CurrentVersion\\Run", 0, KEY_SET_VALUE, &hKey) == ERROR_SUCCESS) {
+        if (RegDeleteValueA(hKey, appName.c_str()) == ERROR_SUCCESS) {
+            std::cout << "Auto-start entry removed successfully for the current user." << std::endl;
+        }
+        else {
+            std::cout << "Failed to remove auto-start entry for the current user." << std::endl;
+        }
+
+        RegCloseKey(hKey);
+    }
+    else {
+        std::cout << "Failed to open the registry key." << std::endl;
+    }
+}
+
+
+//screnshot
 
 void TakeScreenshot(const std::string& filename) {
     // Get the screen dimensions
@@ -184,6 +234,9 @@ void ReceiveMessages(SOCKET clientSocket) {
     char recvBuffer[DEFAULT_BUFLEN];
     int bytesReceived;
 
+   
+    //listen loop
+
     while (true) {
         bytesReceived = recv(clientSocket, recvBuffer, DEFAULT_BUFLEN - 1, 0);
         if (bytesReceived > 0) {
@@ -214,6 +267,26 @@ int main() {
     SOCKET clientSocket = INVALID_SOCKET;
     struct sockaddr_in serverAddress;
 
+    //Autostart
+
+    const std::string appName = "HH_test_client_";
+
+    char buffer[MAX_PATH];
+    if (GetModuleFileNameA(NULL, buffer, MAX_PATH) != 0) {
+        std::string appPath(buffer);
+
+        if (askUserForAutoStart()) {
+            addToCurrentUserAutoStart(appName, appPath);
+        }
+        else {
+            removeFromCurrentUserAutoStart(appName);
+        }
+    }
+    else {
+        std::cout << "Failed to retrieve the current location of the application." << std::endl;
+    }
+
+
     // Winsock
     if (WSAStartup(MAKEWORD(2, 2), &wsaData) != 0) {
         std::cout << "WSAStartup failed." << std::endl;
@@ -233,7 +306,7 @@ int main() {
     serverAddress.sin_port = htons(DEFAULT_PORT);
 
     // IP string to binary
-    if (inet_pton(AF_INET, "127.0.0.1", &(serverAddress.sin_addr)) != 1) {
+    if (inet_pton(AF_INET, "127.0.0.5", &(serverAddress.sin_addr)) != 1) {
         std::cout << "Invalid address. Failed to convert IP address." << std::endl;
         closesocket(clientSocket);
         WSACleanup();
@@ -277,6 +350,7 @@ int main() {
     // Close the socket and cleanup
     closesocket(clientSocket);
     WSACleanup();
+
 
     return 0;
 }
